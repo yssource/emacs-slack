@@ -35,6 +35,9 @@
     (define-key map (kbd "C-s C-b") #'slack-message-write-another-buffer)
     map))
 
+(define-derived-mode slack-info-mode fundamental-mode "SlackInfo"
+  "")
+
 (define-derived-mode slack-mode lui-mode "Slack"
   ""
   (lui-set-prompt lui-prompt-string)
@@ -122,6 +125,7 @@
 (defun slack-buffer-create-info (buf-name insert-func)
   (let ((buf (get-buffer-create buf-name)))
     (with-current-buffer buf
+      (slack-info-mode)
       (setq buffer-read-only nil)
       (erase-buffer)
       (goto-char (point-min))
