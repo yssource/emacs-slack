@@ -26,19 +26,22 @@
 
 (require 'slack-request)
 (require 'slack-room)
+(require 'slack-file)
 
 (defvar slack-users)
 (defvar slack-token)
+(defvar slack-buffer-function)
+(defconst slack-user-stars-list-url "https://slack.com/api/stars.list")
 
 (defun slack-user-find (id)
   (cl-find-if (lambda (user)
-             (string= id (plist-get user :id)))
-           slack-users))
+                (string= id (plist-get user :id)))
+              slack-users))
 
 (defun slack-user-find-by-name (name)
   (cl-find-if (lambda (user)
-             (string= name (plist-get user :name)))
-           slack-users))
+                (string= name (plist-get user :name)))
+              slack-users))
 
 (defun slack-user-get-id (name)
   (let ((user (slack-user-find-by-name name)))
@@ -54,6 +57,90 @@
 (defun slack-user-names ()
   (mapcar (lambda (u) (cons (plist-get u :name) (plist-get u :id)))
           slack-users))
+
+(defun slack-user-select-from-list ()
+  (let* ((list (slack-user-names))
+         (candidates (mapcar #'car list)))
+    (slack-room-select-from-list
+     (candidates "Select User: ")
+     (cdr (cl-assoc selected list :test #'string=)))))
+
+(defun slack-user-stars-list-request (&optional page user-id)
+  (let ((target-user (or user-id (slack-user-select-from-list))))
+    (cl-labels ((on-stars-list
+                 (&key data &allow-other-keys)
+                 (slack-request-handle-error
+                  (data "slack-user-stars-list")
+                  (slack-user-on-stars-list data target-user))))
+      (slack-request
+       slack-user-stars-list-url
+       :params (list (cons "token" slack-token)
+                     (cons "user" target-user)
+                     (cons "page" (number-to-string (or page 1))))
+       :success #'on-stars-list
+       :sync nil))))
+
+(defun slack-user-stars-list ()
+  (interactive)
+  (let* ((word (thing-at-point 'line))
+         (target-page (ignore-errors (get-text-property 0 'target-page word)))
+         (user-id (ignore-errors (get-text-property 0 'user-id word))))
+    (slack-user-stars-list-request target-page user-id)))
+
+(defvar slack-user-stars-list-keymap
+  (let ((keymap (make-sparse-keymap)))
+    (define-key keymap (kbd "RET") #'slack-user-stars-list)
+    keymap))
+
+(defun slack-user-on-stars-list (data user-id)
+  (cl-labels ((create-object (item)
+                             (cond
+                              ((string= "message" (plist-get item :type))
+                               (slack-message-create (plist-get item :message)))
+                              ((string= "file" (plist-get item :type))
+                               (slack-file-create (plist-get item :file)))))
+              (create-messages (object)
+                               (if object
+                                   (cond
+                                    ((object-of-class-p object 'slack-message)
+                                     (slack-message-to-string object))
+                                    ((object-of-class-p object 'slack-file)
+                                     (slack-file-to-string object))))))
+    (let* ((objects (mapcar #'create-object (append (plist-get data :items) nil)))
+           (messages (cl-remove-if #'null (mapcar #'create-messages objects)))
+           (paging (plist-get data :paging))
+           (cur-page (plist-get paging :page))
+           (prev-page (or (and (< 1 cur-page) (1- cur-page)) nil))
+           (next-page (or (and (< cur-page (plist-get paging :pages)) (1+ cur-page)) nil)))
+      (funcall slack-buffer-function
+               (slack-buffer-create-info
+                (concat "*Slack - Starred Items of " (slack-user-name user-id) "*")
+                #'(lambda ()
+                    (insert (concat (propertize "Starred Items"
+                                                'face '(:underline t :weight bold))
+                                    "\n\n"))
+                    (mapc #'(lambda (m) (insert m) (insert "\n"))
+                          (nreverse messages))
+                    (insert (concat (format "total: %s page: %s/%s"
+                                            (plist-get paging :total)
+                                            (plist-get paging :page)
+                                            (plist-get paging :pages))
+                                    "\n\n"))
+                    (when prev-page
+                      (insert (propertize
+                               "(prev-page)"
+                               'face '(:underline t)
+                               'target-page prev-page
+                               'user-id user-id
+                               'keymap slack-user-stars-list-keymap))
+                      (insert "\n"))
+                    (when next-page
+                      (insert (propertize
+                               "(next-page)"
+                               'face '(:underline t)
+                               'target-page next-page
+                               'user-id user-id
+                               'keymap slack-user-stars-list-keymap)))))))))
 
 (provide 'slack-user)
 ;;; slack-user.el ends here
