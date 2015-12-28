@@ -206,5 +206,80 @@
                                   (oref channel id)
                                   #'on-channel-unarchive))))
 
+(defconst slack-channel-kick-url "https://slack.com/api/channels.kick")
+
+(defun slack-channel-kick ()
+  (interactive)
+  (let ((channel (slack-current-room-or-select
+                  (slack-channel-names
+                   #'(lambda (channels)
+                       (cl-remove-if
+                        #'(lambda (c)
+                            (or (slack-room-archived-p c)
+                                (not (slack-room-member-p c))))
+                        channels))))))
+    (message "%s" (oref channel members))
+    (slack-channel-info channel)
+    (message "%s" (oref channel members))
+    (slack-room-kick slack-channel-kick-url
+                     (slack-room-find (oref channel id)))))
+
+(defun slack-channel-info (channel)
+  (cl-labels
+      ((on-channel-info (&key data &allow-other-keys)
+                        (slack-request-handle-error
+                         (data "slack-channel-info")
+                         (let ((c (plist-get data :channel))
+                               (channel (slack-channel-create c)))
+                           (setq slack-channels (push channel
+                                                      (cl-delete-if #'slack-room-equal-p
+                                                                    slack-channels)))))))
+    (slack-room-info channel
+                     slack-channel-info-url
+                     #'on-channel-info)))
+
+(defun slack-room-info (room url success)
+  (slack-request
+   url
+   :params (list (cons "token" slack-token)
+                 (cons "channel" (oref room id)))
+   :success success
+   :sync t))
+
+(defmacro slack-room-kick (url room)
+  `(cl-labels
+       ((build-user-list (r)
+                         (cl-remove-if
+                          #'null
+                          (mapcar #'(lambda (id)
+                                      (unless (string= id slack-my-user-id)
+                                        (cons (slack-user-name id)
+                                              id)))
+                                  (oref r members)))))
+     (let* ((user-list (build-user-list ,room))
+            (user-id (unless (null (car user-list))
+                       (slack-select-from-list
+                        ((mapcar #'car user-list) "Select User: ")
+                        (slack-extract-from-list selected user-list)))))
+       (message "user-list: %s"  user-list)
+       (if user-id
+           (cl-labels
+               ((on-room-kick (&key data &allow-other-keys)
+                              (slack-request-handle-error
+                               (data "slack-room-kick")
+                               (with-slots (members) ,room
+                                 (setq members (cl-delete-if #'string=
+                                                             user-id)))
+                               (message "Kicked %s"
+                                        (slack-user-name user-id)))))
+             (slack-request
+              ,url
+              :params (list (cons "token" slack-token)
+                            (cons "channel" (oref ,room id))
+                            (cons "user" user-id))
+              :sync nil
+              :success #'on-room-kick))
+         (message "No member in %s" (slack-room-name ,room))))))
+
 (provide 'slack-channel)
 ;;; slack-channel.el ends here

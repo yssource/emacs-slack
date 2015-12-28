@@ -68,6 +68,7 @@
                      (websocket-frame-payload frame)))
            (decoded-payload (slack-ws-recursive-decode payload))
            (type (plist-get decoded-payload :type)))
+      (message "%s" decoded-payload)
       (cond
        ((string= type "hello")
         (message "Slack Websocket Is Ready!"))
@@ -96,12 +97,22 @@
             (string= type "group_joined"))
         (slack-ws-handle-room-joined decoded-payload))
        ((string= type "presence_change")
-        (slack-ws-handle-presence-change decoded-payload))))))
+        (slack-ws-handle-presence-change decoded-payload))
+       ((or (string= type "channel_left")
+            (string= type "group_left"))
+        (slack-ws-handle-room-left decoded-payload))))))
 
+;; (:user U0HCCH2GN :type message :subtype channel_join :text <@U0HCCH2GN|testm> has joined the channel :channel C0HBUN7R9 :ts 1451305832.000002)
 (defun slack-ws-handle-message (payload)
   (let ((m (slack-message-create payload)))
-    (if m
-        (slack-message-update m))))
+    (when m
+      (slack-message-update m)
+      (if (string= (plist-get payload :subtype) "channel_join")
+          (let ((channel (slack-room-find (plist-get payload :channel))))
+            (with-slots (members) channel
+              (cl-pushnew (plist-get payload :user)
+                          members
+                          :test #'string=)))))))
 
 (defun slack-ws-handle-reply (payload)
   (let ((ok (plist-get payload :ok)))
@@ -187,6 +198,10 @@
          (user (slack-user-find id))
          (presence (plist-get payload :presence)))
     (plist-put user :presence presence)))
+
+(defun slack-ws-handle-room-left (payload)
+  (let ((room (slack-room-find (plist-get payload :channel))))
+    (message "You left %s" (slack-room-find room))))
 
 (provide 'slack-websocket)
 ;;; slack-websocket.el ends here
