@@ -69,10 +69,10 @@
 
 (defun slack-buffer-enable-emojify ()
   (if slack-buffer-emojify
-      (let ((emojify (require 'emojify nil t)))
-        (unless emojify
-          (error "Emojify is not installed"))
-        (emojify-mode t))))
+      (let ((lib (require 'emoji-cheat-sheet-plus nil t)))
+        (unless lib
+          (error "emoji-cheat-sheet-plus is not installed"))
+        (emoji-cheat-sheet-plus-display-mode t))))
 
 (defun slack-buffer-insert-previous-link (oldest-msg)
   (lui-insert (concat (propertize "(load more message)"
