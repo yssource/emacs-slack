@@ -34,7 +34,8 @@
     (or (get-buffer buf-name)
         (let ((buf (generate-new-buffer buf-name)))
           (with-current-buffer buf
-            (slack-all-unread-mode))
+            (slack-all-unread-mode)
+            (add-hook 'lui-pre-output-hook 'slack-buffer-buttonize-link nil t))
           buf))))
 
 (defface slack-all-unread-channel-line-face
