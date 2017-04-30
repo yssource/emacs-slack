@@ -269,6 +269,20 @@ you can change current-team with `slack-change-current-team'"
                      (oref room unread-count-display))))
     (propertize str 'face 'slack-all-unread-channel-line-face)))
 
+(defun slack-all-unread-show-more-message-line (room team first-message)
+  (let ((str "show more message"))
+    (propertize str
+                'face 'slack-all-unread-show-more-message-line-face
+                'keymap (let ((map (make-sparse-keymap)))
+                          (define-key map (kbd "RET")
+                            #'(lambda ()
+                                (interactive)
+                                (slack-room-create-buffer
+                                 room team
+                                 :with-this-buffer
+                                 #'(lambda () (slack-buffer-goto (oref first-message ts))))))
+                          map))))
+
 (defun slack-all-unread-insert-messages (room team messages)
   (let ((lui-time-stamp-position nil))
     (lui-insert (format "%s\n" (slack-all-unread-channel-line room team))))
@@ -280,7 +294,7 @@ you can change current-team with `slack-change-current-team'"
 
     (when (< max-display-count unread-count)
       (let ((lui-time-stamp-position nil))
-        (lui-insert "show more messages")))
+        (lui-insert (slack-all-unread-show-more-message-line room team (car messages-display)))))
 
     (lui-insert "\n")))
 

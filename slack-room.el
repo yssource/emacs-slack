@@ -79,13 +79,15 @@
        ,@body)
      buf))
 
-(cl-defun slack-room-create-buffer (room team &key update)
+(cl-defun slack-room-create-buffer (room team &key update (with-this-buffer nil))
   (with-slots (messages) room
     (if (or update (< (length messages) 1) (not (slack-room-has-buffer-p room)))
         (slack-room-history-request room team)))
   (funcall slack-buffer-function
            (slack-room-with-buffer room team
-             (slack-room-insert-messages room buf team))))
+             (slack-room-insert-messages room buf team)
+             (if with-this-buffer
+                 (funcall with-this-buffer)))))
 
 (cl-defun slack-room-create-buffer-bg (room team)
   (cl-labels
