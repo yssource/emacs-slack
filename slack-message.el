@@ -157,12 +157,15 @@
   (oset (oref m comment) reactions reactions))
 
 (defun slack-attachment-create (payload)
-  (plist-put payload :fields
-             (mapcar #'(lambda (field) (apply #'slack-attachment-field
-                                              (slack-collect-slots 'slack-attachment-field field)))
-                     (append (plist-get payload :fields) nil)))
-  (if (numberp (plist-get payload :ts))
-      (plist-put payload :ts (number-to-string (plist-get payload :ts))))
+  (setq payload
+        (plist-put payload :fields
+                   (mapcar #'(lambda (field) (apply #'slack-attachment-field
+                                                    (slack-collect-slots 'slack-attachment-field field)))
+                           (append (plist-get payload :fields) nil))))
+  (setq payload
+        (if (numberp (plist-get payload :ts))
+            (plist-put payload :ts (number-to-string (plist-get payload :ts)))
+          payload))
 
   (if (plist-get payload :is_share)
       (apply #'slack-shared-message "shared-attachment"
