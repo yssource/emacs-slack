@@ -68,9 +68,26 @@
                                  #'(lambda () (slack-buffer-goto (oref first-message ts))))))
                           map))))
 
+(defface slack-all-unread-make-all-messages-read-line-face
+  '((t (:underline t)))
+  "Face used to \"make all messages as read\" line."
+  :group 'slack)
+
+(defun slack-all-unread-make-all-read-line (room team message)
+  (let ((str "make all messages as read"))
+    (propertize str
+                'face 'slack-all-unread-make-all-messages-read-line-face
+                'keymap (let ((map (make-sparse-keymap)))
+                          (define-key map (kbd "RET")
+                            #'(lambda ()
+                                (interactive)
+                                (slack-room-update-mark room team message)))
+                          map))))
+
 (defun slack-all-unread-insert-messages (room team messages)
   (let ((lui-time-stamp-position nil))
-    (lui-insert (format "%s\n" (slack-all-unread-channel-line room team))))
+    (lui-insert (format "%s\n" (slack-all-unread-channel-line room team)))
+    (lui-insert (format "%s\n" (slack-all-unread-make-all-read-line room team (car (last messages))))))
   (let* ((max-display-count 5)
          (unread-count (oref room unread-count-display))
          (messages-display (cl-subseq messages
