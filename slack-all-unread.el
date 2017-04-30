@@ -120,7 +120,6 @@
            (inhibit-read-only t))
       (with-current-buffer buf
         (delete-region (point-min) (point-max))
-        (goto-char (point-min))
         (mapc #'(lambda (room)
                   (let* ((unread-messages (unread-messages room))
                          (need-request (= 0 (length (oref room messages)))))
