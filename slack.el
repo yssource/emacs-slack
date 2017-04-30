@@ -45,6 +45,7 @@
 (require 'slack-message-changed)
 (require 'slack-message-delete)
 (require 'slack-room-history)
+(require 'slack-all-unread)
 
 (require 'slack-websocket)
 (require 'slack-request)
