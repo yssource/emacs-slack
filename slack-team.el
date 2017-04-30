@@ -243,44 +243,67 @@ you can change current-team with `slack-change-current-team'"
 (defcustom slack-all-unreads-only-subscribed-channels nil
   "If set t, display subscribed channels unreads messages.")
 
+(define-derived-mode slack-all-unread-mode lui-mode "Slack All Unread")
+
+(defun slack-all-unread-create-buffer (team)
+  (let ((buf-name (format "%s - All Unreads" (slack-team-name team))))
+    (or (get-buffer buf-name)
+        (let ((buf (generate-new-buffer buf-name)))
+          (with-current-buffer buf
+            (slack-all-unread-mode))
+          buf))))
+
+(defface slack-all-unread-channel-line-face
+  '((t (:weight bold :height 1.5 :underline t)))
+  "Face used to All Unread Header."
+  :group 'slack)
+
+(defface slack-all-unread-show-more-message-line-face
+  '((t (:underline t)))
+  "Face used to \"show more message\" line."
+  :group 'slack)
+
+(defun slack-all-unread-channel-line (room team)
+  (let ((str (format "# %s\t\t%s messages"
+                     (slack-room-name room)
+                     (oref room unread-count-display))))
+    (propertize str 'face 'slack-all-unread-channel-line-face)))
+
+(defun slack-all-unread-insert-messages (room team messages)
+  (let ((lui-time-stamp-position nil))
+    (lui-insert (format "%s\n" (slack-all-unread-channel-line room team))))
+  (let* ((max-display-count 5)
+         (unread-count (oref room unread-count-display))
+         (messages-display (cl-subseq messages
+                                      0 (min unread-count max-display-count (length messages)))))
+    (mapc #'(lambda (message) (slack-buffer-insert message team t)) messages-display)
+
+    (when (< max-display-count unread-count)
+      (let ((lui-time-stamp-position nil))
+        (lui-insert "show more messages")))
+
+    (lui-insert "\n")))
+
 (defun slack-all-unread ()
   (interactive)
   (cl-labels
-      ((generate-headline (team room)
-                          (propertize (format "# %s\t\t%s messages"
-                                              (slack-room-name room)
-                                              (oref room unread-count-display))
-                                      'face '(:weight bold :height 1.5 :underline t)))
-       (setup-buffer (buf-name)
-                     (or (get-buffer buf-name)
-                         (let ((buf (generate-new-buffer buf-name)))
-                           (with-current-buffer buf (slack-info-mode))
-                           buf)))
-       (insert-unread-messages (room team unread-messages)
-                               (let ((lui-time-stamp-position nil))
-                                 (lui-insert (format "%s\n" (generate-headline team room))))
-                               (let ((max-display-count 5)
-                                     (unread-count (oref room unread-count-display)))
-                                 (mapc #'(lambda (message) (slack-buffer-insert message team t))
-                                       (cl-subseq unread-messages 0 (min unread-count max-display-count (length unread-messages))))
-                                 (when (< max-display-count unread-count)
-                                   (lui-insert "show more messages"))))
-       (unread-messages (room)
-                        (slack-room-latest-messages room (slack-room-sorted-messages room))))
-
+      ((unread-messages (room)
+                        (slack-room-latest-messages room (slack-room-sorted-messages room)))
+       (channels-display (team)
+                         (let ((all (cl-remove-if #'slack-room-hiddenp
+                                                  (append (oref team ims) (oref team channels) (oref team groups)))))
+                           (cl-sort (if slack-all-unreads-only-subscribed-channels
+                                        (cl-remove-if-not #'(lambda (e) (slack-room-subscribedp e team))
+                                                          all)
+                                      all)
+                                    #'string>
+                                    :key #'(lambda (e) (oref e last-read))))))
     (let* ((team (slack-team-select))
-           (all-channels (cl-remove-if #'slack-room-hiddenp
-                                       (append (oref team ims) (oref team channels) (oref team groups))))
-           (channels (cl-sort (if slack-all-unreads-only-subscribed-channels
-                                  (cl-remove-if-not #'(lambda (e) (slack-room-subscribedp e team))
-                                                    all-channels)
-                                all-channels)
-                              #'string>
-                              :key #'(lambda (e) (oref e last-read))))
-           (buf (setup-buffer (format "%s - All Unreads" (slack-team-name team))))
+           (channels (channels-display team))
+           (buf (slack-all-unread-create-buffer team))
            (inhibit-read-only t))
       (with-current-buffer buf
-        (erase-buffer)
+        (delete-region (point-min) (point-max))
         (goto-char (point-min))
         (mapc #'(lambda (room)
                   (let* ((unread-messages (unread-messages room))
@@ -291,12 +314,11 @@ you can change current-team with `slack-change-current-team'"
                            room team
                            :async t
                            :after-success #'(lambda ()
-                                              (insert-unread-messages room team (unread-messages room))))
-                        (insert-unread-messages room team unread-messages)))))
+                                              (slack-all-unread-insert-messages room team (unread-messages room))))
+                        (slack-all-unread-insert-messages room team unread-messages)))))
               channels)
         (goto-char (point-min)))
-      (funcall slack-buffer-function buf))
-    ))
+      (funcall slack-buffer-function buf))))
 
 (provide 'slack-team)
 ;;; slack-team.el ends here
