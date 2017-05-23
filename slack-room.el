@@ -28,6 +28,8 @@
 (require 'lui)
 (require 'slack-request)
 (require 'slack-message)
+(require 'slack-room-topic)
+(require 'slack-room-purpose)
 
 (defvar slack-current-room-id)
 (defvar slack-current-team-id)
@@ -55,9 +57,10 @@
 (defun slack-room-create (payload team class)
   (cl-labels
       ((prepare (p)
-                (plist-put p :members
-                           (append (plist-get p :members) nil))
+                (plist-put p :members (append (plist-get p :members) nil))
                 (plist-put p :team-id (oref team id))
+                (plist-put p :topic (slack-room-topic-create (plist-get p :topic)))
+                (plist-put p :purpose (slack-room-purpose-create (plist-get p :purpose)))
                 p))
     (let* ((attributes (slack-collect-slots class (prepare payload)))
            (room (apply #'make-instance class attributes)))

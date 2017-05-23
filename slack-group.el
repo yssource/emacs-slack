@@ -52,9 +52,9 @@
    (is-archived :initarg :is_archived)
    (is-mpim :initarg :is_mpim)
    (members :initarg :members :type list)
-   (topic :initarg :topic)
+   (topic :initarg :topic :initform nil)
    (unread-count-display :initarg :unread_count_display :initform 0 :type integer)
-   (purpose :initarg :purpose)))
+   (purpose :initarg :purpose :initform nil)))
 
 (defun slack-group-names (team &optional filter)
   (with-slots (groups) team
