@@ -220,5 +220,11 @@
   (cl-find-if #'(lambda (im) (string= user-id (oref im user)))
               (oref team ims)))
 
+(defmethod slack-room-get-topic ((room slack-im))
+  nil)
+
+(defmethod slack-room-get-purpose ((room slack-im))
+  nil)
+
 (provide 'slack-im)
 ;;; slack-im.el ends here
