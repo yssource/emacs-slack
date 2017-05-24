@@ -258,5 +258,11 @@
            (lui-delete (lambda () (equal (get-text-property (point) 'ts)
                                          ts)))))))
 
+(defun slack-buffer-check-team-and-room-id (&optional err-msg)
+  (let ((msg (or err-msg "Call this function on Slack Buffer")))
+    (if (or (not (bound-and-true-p slack-current-team-id))
+            (not (bound-and-true-p slack-current-room-id)))
+        (error msg))))
+
 (provide 'slack-buffer)
 ;;; slack-buffer.el ends here
