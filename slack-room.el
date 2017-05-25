@@ -594,14 +594,44 @@
 (defmethod slack-room-get-purpose ((room slack-room))
   (oref room purpose))
 
+(defun slack-room-topic-and-purpose-buffer-name (room team)
+  (format "*Slack %s - %s Topic And Purpose"
+          (slack-team-name team)
+          (slack-room-name room)))
+
+(defmethod slack-room-topic-to-string ((room slack-room) team)
+  (with-slots (topic) room
+    (when topic
+      (slack-topic-to-string topic team))))
+
+(defmethod slack-room-purpose-to-string ((room slack-room) team)
+  (with-slots (purpose) room
+    (when purpose
+      (slack-purpose-to-string purpose team))))
+
 (defun slack-room-topic-and-purpose ()
   (interactive)
   (slack-buffer-check-team-and-room-id)
   (let* ((team (slack-team-find slack-current-team-id))
          (room (slack-room-find slack-current-room-id team))
          (topic (slack-room-get-topic room))
-         (purpose (slack-room-get-purpose room)))
-    (message "topic: %s, purpose: %s" topic purpose)))
+         (purpose (slack-room-get-purpose room))
+         (bufname (slack-room-topic-and-purpose-buffer-name room team))
+         (buf (get-buffer-create bufname)))
+    (with-current-buffer buf
+      (setq buffer-read-only nil)
+      (erase-buffer)
+      (goto-char (point-min))
+      (insert (slack-room-name room))
+      (insert "\n")
+      (insert (or (slack-room-topic-to-string room team)
+                  "No Topic"))
+      (insert "\n")
+      (insert (or (slack-room-purpose-to-string room team)
+                  "No Purpose"))
+      (goto-char (point-min))
+      (setq buffer-read-only t))
+    (funcall slack-buffer-function buf)))
 
 (provide 'slack-room)
 ;;; slack-room.el ends here
