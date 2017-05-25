@@ -40,6 +40,11 @@
                        :creator creator
                        :last_set (number-to-string (plist-get payload :last_set)))))))
 
+(defmethod slack-topic-to-string ((topic slack-room-topic) team)
+  (format "Topic:\n\t%s\n\tby %s at %s"
+          (oref topic value)
+          (slack-user-name (oref topic creator) team)
+          (slack-message-time-to-string (oref topic last-set))))
 
 
 (provide 'slack-room-topic)
