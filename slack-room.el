@@ -609,6 +609,20 @@
     (when purpose
       (slack-purpose-to-string purpose team))))
 
+(defface slack-room-info-title
+  '((t (:foreground "#FFA000"
+                    :weight bold
+                    :height 1.2
+                    )))
+  "Face used to slack room info title"
+  :group 'slack)
+
+(defface slack-room-info-section
+  '((t (:weight bold
+                :underline t)))
+  "Face used to slack room info section"
+  :group 'slack)
+
 (defun slack-room-topic-and-purpose ()
   (interactive)
   (slack-buffer-check-team-and-room-id)
@@ -622,11 +636,16 @@
       (setq buffer-read-only nil)
       (erase-buffer)
       (goto-char (point-min))
-      (insert (slack-room-name room))
-      (insert "\n")
+      (insert (propertize (slack-room-name room)
+                          'face 'slack-room-info-title))
+      (insert "\n\n")
+      (insert (propertize "Topic:\n"
+                          'face 'slack-room-info-section))
       (insert (or (slack-room-topic-to-string room team)
                   "No Topic"))
-      (insert "\n")
+      (insert "\n\n")
+      (insert (propertize "Purpose:\n"
+                          'face 'slack-room-info-section))
       (insert (or (slack-room-purpose-to-string room team)
                   "No Purpose"))
       (goto-char (point-min))

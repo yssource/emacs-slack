@@ -32,7 +32,7 @@
   (slack-room-topic-create payload 'slack-room-purpose))
 
 (defmethod slack-purpose-to-string ((purpose slack-room-purpose) team)
-  (format "Purpose:\n\t%s\n\tby %s at %s"
+  (format "%s\n\tby %s at %s"
           (oref purpose value)
           (slack-user-name (oref purpose creator) team)
           (slack-message-time-to-string (oref purpose last-set))))
