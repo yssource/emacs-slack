@@ -112,7 +112,6 @@
          ((string= type "pong")
           (slack-ws-handle-pong decoded-payload team))
          ((string= type "hello")
-          (slack-ws-cancel-reconnect-timer team)
           (slack-cancel-notify-adandon-reconnect)
           (slack-ws-set-ping-timer team)
           (slack-ws-resend team)
@@ -497,10 +496,9 @@
 (defun slack-ws-reconnect (team &optional force)
   (with-slots
       (reconnect-count (reconnect-max reconnect-count-max)) team
+    (slack-ws-cancel-reconnect-timer team)
     (if (and (not force) reconnect-max (< reconnect-max reconnect-count))
-        (progn
-          (slack-notify-abandon-reconnect)
-          (slack-ws-cancel-reconnect-timer team))
+        (slack-notify-abandon-reconnect)
       (cl-incf reconnect-count)
       (slack-ws-close team)
       (slack-log (format "Slack Websocket Try To Reconnect %s/%s" reconnect-count reconnect-max) team)
