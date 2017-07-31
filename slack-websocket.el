@@ -504,7 +504,8 @@
       (slack-log (format "Slack Websocket Try To Reconnect %s/%s" reconnect-count reconnect-max) team)
       (cl-labels
           ((on-error (&key error-thrown &allow-other-keys)
-                     (slack-log (format "Slack Reconnect Failed: %s" (cdr error-thrown)) team)))
+                     (slack-log (format "Slack Reconnect Failed: %s" (cdr error-thrown)) team)
+                     (slack-ws-set-reconnect-timer team)))
         (slack-authorize team #'on-error)))))
 
 (defun slack-ws-cancel-reconnect-timer (team)
