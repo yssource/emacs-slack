@@ -451,16 +451,18 @@
                              nil #'slack-ws-ping-timeout team)
            (oref team ping-check-timers)))
 
+(defun slack-ws-set-reconnect-timer (team)
+  (if (timerp (oref team reconnect-timer))
+      (cancel-timer (oref team reconnect-timer)))
+  (oset team reconnect-timer
+        (run-at-time t (oref team reconnect-after-sec)
+                     #'slack-ws-reconnect team)))
 
 (defun slack-ws-ping-timeout (team)
   (slack-log "Slack Websocket PING Timeout." team)
   (slack-ws-close team)
   (when (oref team reconnect-auto)
-    (if (timerp (oref team reconnect-timer))
-        (cancel-timer (oref team reconnect-timer)))
-    (oset team reconnect-timer
-          (run-at-time t (oref team reconnect-after-sec)
-                       #'slack-ws-reconnect team))))
+    (slack-ws-set-reconnect-timer team)))
 
 (defun slack-ws-cancel-ping-check-timers (team)
   (maphash #'(lambda (key value)
