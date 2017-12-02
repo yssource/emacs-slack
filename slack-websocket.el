@@ -785,7 +785,10 @@
        ((string= item-type "message")
         (slack-if-let* ((room (slack-room-find (plist-get item :channel) team))
                         (ts (plist-get (plist-get item :message) :ts))
-                        (message (slack-room-find-message room ts)))
+                        (message (or (slack-room-find-message room ts)
+                                     (slack-message-create (plist-get item :message)
+                                                           team
+                                                           :room room))))
             (update-message message)))))
     (slack-if-let* ((star (oref team star)))
         (slack-star-add star item team))))
