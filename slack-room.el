@@ -208,11 +208,15 @@
         (setq latest message))))
 
 (defmethod slack-room-push-message ((room slack-room) message)
-  (with-slots (messages) room
-    (setq messages
-          (cl-remove-if #'(lambda (n) (slack-message-equal message n))
-                        messages))
-    (push message messages)))
+  (message "IS_STARRED: %s" (slack-message-starred-p message))
+  (slack-merge-list (oref room messages)
+                    (list message))
+  ;; (with-slots (messages) room
+  ;;   (setq messages
+  ;;         (cl-remove-if #'(lambda (n) (slack-message-equal message n))
+  ;;                       messages))
+  ;;   (push message messages))
+  )
 
 (defmethod slack-room-set-messages ((room slack-room) messages)
   (let* ((sorted (slack-room-sort-messages

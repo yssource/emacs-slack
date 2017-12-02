@@ -406,6 +406,23 @@
                         (oref m thread-ts))))
     (and thread-ts (string= (oref m ts) thread-ts))))
 
+(defmethod slack-merge ((old slack-message) new)
+  (oset old text (oref new text))
+  (oset old attachments (oref new attachments))
+  (oset old is-starred (oref new is-starred))
+  (oset old pinned-to (oref new pinned-to))
+  (oset old edited-at (oref new edited-at))
+  (oset old deleted-at (oref new deleted-at))
+  (oset old thread (oref new thread))
+  (oset old thread-ts (oref new thread-ts))
+  (oset old hide (oref new hide)))
+
+(defmethod slack-merge ((old slack-file-message) new)
+  (call-next-method)
+  (oset old file (oref new file)))
+
+(defmethod slack-equalp ((this slack-message) other)
+  (slack-message-equal this other))
 
 (provide 'slack-message)
 ;;; slack-message.el ends here
