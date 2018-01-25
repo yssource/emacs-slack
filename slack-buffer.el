@@ -225,7 +225,8 @@
 
 (defcustom slack-default-directory
   (expand-file-name (concat (or (getenv "HOME") "~") "/"))
-  "default directory at Slack Buffer.")
+  "default directory at Slack Buffer."
+  :group 'slack)
 
 (define-derived-mode slack-mode lui-mode "Slack"
   ""
