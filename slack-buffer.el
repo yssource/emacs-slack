@@ -79,11 +79,11 @@
 
 (defun slack-message-buffer-on-killed ()
   (slack-if-let* ((buf slack-current-buffer)
-            (class (eieio-object-class-name buf))
-            (cb (current-buffer)))
-      (set-slot-value (oref buf team) class
-                      (cl-remove-if #'(lambda (e) (equal e cb))
-                                    (slot-value (oref buf team) class)))))
+                  (class (eieio-object-class-name buf))
+                  (cb (current-buffer)))
+      (setf (slot-value (oref buf team) class)
+            (cl-remove-if #'(lambda (e) (equal e cb))
+                          (slot-value (oref buf team) class)))))
 
 (defun slack-buffer-replace-image (buffer ts)
   (and (buffer-live-p buffer)
