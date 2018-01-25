@@ -31,7 +31,7 @@
   (slack-message-compose-buffer)
   ((file :initarg :file :type slack-file)))
 
-(defmethod slack-buffer-name :static ((class slack-file-comment-compose-buffer) file team)
+(defmethod slack-buffer-name :static ((_class slack-file-comment-compose-buffer) file team)
   (format "*Slack -  %s : Compose %s Comment*"
           (oref team name)
           (with-slots (title name id) file
