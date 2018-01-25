@@ -159,7 +159,7 @@
     (let ((lui-time-stamp-position nil))
       (lui-insert str))))
 
-(defmethod slack-buffer-loading-message-end-point ((this slack-buffer))
+(defmethod slack-buffer-loading-message-end-point ((_this slack-buffer))
   (next-single-property-change (point-min) 'loading-message))
 
 (defmethod slack-buffer-delete-load-more-string ((this slack-buffer))
