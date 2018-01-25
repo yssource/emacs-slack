@@ -56,10 +56,10 @@
 
 (defmethod slack-buffer-find :static ((class slack-buffer) room team)
   (slack-if-let* ((buf (cl-find-if
-                  #'(lambda (buf)
-                      (string= (buffer-name buf)
-                               (slack-buffer-name class room team)))
-                  (slot-value team class))))
+                        #'(lambda (buf)
+                            (string= (buffer-name buf)
+                                     (slack-buffer-name class room team)))
+                        (slot-value team class))))
       (with-current-buffer buf slack-current-buffer)))
 
 (defmethod slack-buffer-buffer ((this slack-buffer))
