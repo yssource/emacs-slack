@@ -106,12 +106,12 @@
 (defun slack-file-comment-edit-commit ()
   (interactive)
   (slack-if-let* ((buf slack-current-buffer)
-            (message (buffer-substring-no-properties (point-min) (point-max))))
+                  (message (buffer-substring-no-properties (point-min) (point-max))))
       (slack-buffer-send-message buf message)))
 
 (defun slack-file-comment-process-star-api (url team)
   (slack-if-let* ((file-id slack-current-file-id)
-            (file-comment-id (slack-get-file-comment-id)))
+                  (file-comment-id (slack-get-file-comment-id)))
       (slack-with-file file-id team
         (slack-with-file-comment file-comment-id file
           (slack-message-star-api-request url
