@@ -184,7 +184,7 @@
 
 (defmethod slack-message-changed--copy ((this slack-file-comment-message) other)
   (when (slack-file-comment-message-p other)
-    (let ((changed (call-next-method)))
+    (let ((changed (cl-call-next-method)))
       (with-slots ((old-comment comment) text) this
         (let ((new-comment (oref other comment)))
           (oset old-comment reactions (oref new-comment reactions))
