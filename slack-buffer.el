@@ -74,7 +74,7 @@
                  (kill-buffer buf))
              (signal (car err) (cdr err))))))
 
-(defmethod slack-buffer-name ((this slack-buffer))
+(defmethod slack-buffer-name ((_this slack-buffer))
   "*Slack*")
 
 (defun slack-message-buffer-on-killed ()
