@@ -82,7 +82,7 @@
                                      file-comment-id
                                      message
                                      team))
-  (call-next-method))
+  (cl-call-next-method))
 
 (provide 'slack-edit-file-comment-buffer)
 ;;; slack-edit-file-comment-buffer.el ends here
