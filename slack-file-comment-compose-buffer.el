@@ -43,7 +43,7 @@
                        file team)))
 
 (defmethod slack-buffer-init-buffer ((this slack-file-comment-compose-buffer))
-  (let ((buf (call-next-method)))
+  (let ((buf (cl-call-next-method)))
     (with-current-buffer buf
       (slack-message-compose-buffer)
       (slack-buffer-set-current-buffer this)
@@ -60,7 +60,7 @@
     (slack-file-comment-add-request (oref file id)
                                     message
                                     team))
-  (call-next-method))
+  (cl-call-next-method))
 
 (defun slack-create-file-comment-compose-buffer (file team)
   (slack-if-let* ((buf (slack-buffer-find
