@@ -36,7 +36,7 @@
 (defclass slack-file-info-buffer (slack-buffer)
   ((file :initarg :file :type slack-file)))
 
-(defmethod slack-buffer-name :static ((class slack-file-info-buffer) file team)
+(defmethod slack-buffer-name :static ((_class slack-file-info-buffer) file team)
   (format "*Slack - %s File: %s"
           (oref team name)
           (or (oref file title)
