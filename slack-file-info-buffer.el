@@ -72,7 +72,7 @@
     (slack-buffer-init-buffer this)))
 
 (defmethod slack-buffer-init-buffer ((this slack-file-info-buffer))
-  (let ((buf (call-next-method)))
+  (let ((buf (cl-call-next-method)))
     (with-current-buffer buf
       (slack-file-info-buffer-mode)
       (slack-buffer-set-current-buffer this)
