@@ -35,7 +35,7 @@
 (defmethod slack-buffer-name ((_this slack-file-list-buffer))
   (format "%s" (cl-call-next-method)))
 
-(defmethod slack-buffer-major-mode ((this slack-file-list-buffer))
+(defmethod slack-buffer-major-mode ((_this slack-file-list-buffer))
   'slack-file-list-buffer-mode)
 
 (defmethod slack-create-message-buffer ((room slack-file-room) team)
