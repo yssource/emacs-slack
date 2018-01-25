@@ -180,19 +180,18 @@
 
 (defmethod slack-buffer-load-more ((this slack-buffer))
   (with-slots (team) this
-    (let ((cur-point (point)))
-      (if (slack-buffer-has-next-page-p this)
-          (cl-labels
-              ((after-success
-                ()
-                (with-current-buffer (slack-buffer-buffer this)
-                  (let ((inhibit-read-only t))
-                    (slack-buffer-delete-load-more-string this)
-                    (slack-buffer-prepare-marker-for-history this)
-                    (slack-buffer-insert--history this)
-                    (lui-recover-output-marker)))))
-            (slack-buffer-request-history this #'after-success))
-        (message "No more items.")))))
+    (if (slack-buffer-has-next-page-p this)
+        (cl-labels
+            ((after-success
+              ()
+              (with-current-buffer (slack-buffer-buffer this)
+                (let ((inhibit-read-only t))
+                  (slack-buffer-delete-load-more-string this)
+                  (slack-buffer-prepare-marker-for-history this)
+                  (slack-buffer-insert--history this)
+                  (lui-recover-output-marker)))))
+          (slack-buffer-request-history this #'after-success))
+      (message "No more items."))))
 
 (defmethod slack-buffer-display-file ((this slack-buffer) file-id)
   (with-slots (team) this
