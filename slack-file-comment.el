@@ -164,8 +164,7 @@
 (defmethod slack-message-to-string ((this slack-file-comment-message) team)
   (with-slots (permalink name id page) (oref this file)
     (with-slots (comment) (oref this comment)
-      (let* ((face '(:underline t))
-             (text (format "commented on %s <%s|open in browser>\n%s"
+      (let* ((text (format "commented on %s <%s|open in browser>\n%s"
                            (slack-file-link-info (oref (oref this file) id) name)
                            permalink
                            (format "“ %s" (slack-message-unescape-string comment
