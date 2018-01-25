@@ -206,13 +206,13 @@
 
 (defmethod slack-buffer-display-pins-list ((this slack-buffer))
   (slack-buffer-cant-execute this))
-(defmethod slack-buffer-pins-add ((this slack-buffer) ts)
+(defmethod slack-buffer-pins-add ((this slack-buffer) _ts)
   (slack-buffer-cant-execute this))
-(defmethod slack-buffer-pins-remove ((this slack-buffer) ts)
+(defmethod slack-buffer-pins-remove ((this slack-buffer) _ts)
   (slack-buffer-cant-execute this))
 (defmethod slack-buffer-display-user-profile ((this slack-buffer))
   (slack-buffer-cant-execute this))
-(defmethod slack-buffer-copy-link ((this slack-buffer) ts)
+(defmethod slack-buffer-copy-link ((this slack-buffer) _ts)
   (slack-buffer-cant-execute this))
 
 (defvar lui-prompt-string "> ")
