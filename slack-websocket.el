@@ -693,19 +693,26 @@
         (cancel-timer slack-disconnected-timer)
         (setq slack-disconnected-timer nil))))
 
-(defun slack-request-api-test (team &optional after-success)
+(defun slack-request-api-test (team &optional on-success on-error)
   (cl-labels
-      ((on-success (&key data &allow-other-keys)
+      ((on-error (&key error-thrown symbol-status response data)
+                 (slack-log (fomat "Api test failed. ERROR-THROWN: %s, SYMBOL-STATUS: %s"
+                                   error-thrown symbol-status)
+                            team)
+                 (if (functionp on-error)
+                     (funcall on-error)))
+       (on-success (&key data &allow-other-keys)
                    (slack-request-handle-error
                     (data "slack-request-api-test")
-                    (if after-success
-                        (funcall after-success)))))
+                    (if (functionp on-success)
+                        (funcall on-success)))))
     (slack-request
      (slack-request-create
       slack-api-test-url
       team
       :type "POST"
-      :success #'on-success))))
+      :success #'on-success
+      :error #'on-error))))
 
 (defun slack-on-authorize-for-reconnect (data team)
   (let ((team-data (plist-get data :team))
@@ -739,14 +746,14 @@
                                   slack-room-message-compose-buffer))))
       (slack-ws-open team :on-open #'on-open))))
 
-(defun slack-authorize-for-reconnect (team)
+(defun slack-authorize-for-reconnect (team on-error)
   (cl-labels
       ((on-error (&key error-thrown symbol-status &allow-other-keys)
                  (slack-log (format "Slack Reconnect Failed: %s, %s"
                                     error-thrown
                                     symbol-status)
                             team)
-                 (slack-ws-set-reconnect-timer team))
+                 (funcall on-error))
        (on-success (data)
                    (slack-on-authorize-for-reconnect data team)))
     (slack-authorize team #'on-error #'on-success)))
@@ -762,13 +769,16 @@ TEAM is one of `slack-teams'"
                                  (slack-log "Reconnect with reconnect-url" team)
                                  (slack-ws-open team
                                                 :ws-url (oref team reconnect-url)))
+              (set-reconnect-timer ()
+                                   (slack-ws-set-reconnect-timer team))
               (do-reconnect (team)
                             (cl-incf (oref team reconnect-count))
                             (slack-ws-close team nil)
                             (if (< 0 (length (oref team reconnect-url)))
                                 (slack-request-api-test team
-                                                        #'use-reconnect-url)
-                              (slack-authorize-for-reconnect team))))
+                                                        #'use-reconnect-url
+                                                        #'set-reconnect-timer)
+                              (slack-authorize-for-reconnect team #'set-reconnect-timer))))
     (with-slots
         (reconnect-count (reconnect-max reconnect-count-max)) team
       (if (and (not force) reconnect-max (< reconnect-max reconnect-count))
