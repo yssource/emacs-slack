@@ -59,6 +59,76 @@
     (cancel-timer (oref team websocket-connect-timeout-timer))
     (oset team websocket-connect-timeout-timer nil)))
 
+(defun slack-ws--nowait-sentinel (url url-struct key protocols extensions)
+  #'(lambda (process change)
+      (let ((websocket (process-get process :websocket)))
+        (websocket-debug websocket "State change to %s" change)
+        (message "[Websocket] State change to %s, Process status %s"
+                 (replace-regexp-in-string "[\n\r]+$" "" change)
+                 (process-status process))
+        (when (and
+               (member (process-status process) '(closed failed exit signal))
+               (not (eq 'closed (websocket-ready-state websocket))))
+          (websocket-try-callback 'websocket-on-close 'on-close websocket))
+        (when (eq (process-status process) 'open)
+          (process-send-string process
+                               (format "GET %s HTTP/1.1\r\n"
+                                       (let ((path (url-filename url-struct)))
+                                         (if (> (length path) 0) path "/"))))
+          (websocket-debug websocket "Sending handshake, key: %s, acceptance: %s"
+                           key (websocket-accept-string websocket))
+          (process-send-string process
+                               (websocket-create-headers url key protocols extensions))
+          (websocket-debug websocket "Websocket opened")
+          ))))
+
+(defun slack-ws--nowait-filter (process output)
+  (let ((websocket (process-get process :websocket)))
+    (websocket-outer-filter websocket output)))
+
+(cl-defun slack-ws-open--nowait (url &key protocols extensions (on-open 'identity)
+                                     (on-message (lambda (_w _f))) (on-close 'identity)
+                                     (on-error 'websocket-default-error-handler))
+
+  (let* ((url-struct (url-generic-parse-url url)))
+    (unless (member (url-type url-struct) '("ws" "wss"))
+      (signal 'websocket-unsupported-protocol (url-type url-struct)))
+
+    (let* ((name (format "websocket to %s" url))
+           (key (websocket-genkey))
+           (coding-system-for-read 'binary)
+           (coding-system-for-write 'binary)
+           (type (if (equal (url-type url-struct) "ws") 'plain 'tls))
+           (port (if (= 0 (url-port url-struct))
+                     (if (eq type 'tls) 443 80)
+                   (url-port url-struct)))
+           (host (url-host url-struct))
+           (conn (condition-case-unless-debug nil
+                     (open-network-stream name nil host port
+                                          :type type
+                                          :nowait t)
+                   (wrong-number-of-arguments
+                    (signal 'websocket-wss-needs-emacs-24 "wss"))))
+           (websocket (websocket-inner-create
+                       :conn conn
+                       :url url
+                       :on-open on-open
+                       :on-message on-message
+                       :on-close on-close
+                       :on-error on-error
+                       :protocols protocols
+                       :extensions (mapcar 'car extensions)
+                       :accept-string
+                       (websocket-calculate-accept key))))
+      (unless conn (error "Could not establish the websocket connection to %s" url))
+      (set-process-sentinel
+       conn
+       (slack-ws--nowait-sentinel url url-struct key protocols extensions))
+      (set-process-filter conn #'slack-ws--nowait-filter)
+      (process-put conn :websocket websocket)
+      (set-process-query-on-exit-flag conn nil)
+      websocket)))
+
 (cl-defun slack-ws-open (team &key (on-open nil) (ws-url nil))
   (slack-if-let* ((conn (oref team ws-conn))
                   (state (websocket-ready-state conn)))
@@ -95,18 +165,17 @@
                                 :level 'error)))
         (oset team ws-conn
               (condition-case error-var
-                  (websocket-open (or ws-url (oref team ws-url))
-                                  :on-message #'on-message
-                                  :on-open #'handle-on-open
-                                  :on-close #'on-close
-                                  :on-error #'on-error
-                                  :nowait (oref team websocket-nowait))
+                  (slack-ws-open--nowait (or ws-url (oref team ws-url))
+                                         :on-message #'on-message
+                                         :on-open #'handle-on-open
+                                         :on-close #'on-close
+                                         :on-error #'on-error)
                 (error
                  (slack-log (format "An Error occured while opening websocket connection: %s"
                                     error-var)
                             team
                             :level 'error)
-                 ;; (slack-ws-close team)
+                 (slack-ws-close team)
                  ;; (slack-ws-set-reconnect-timer team)
                  nil)))))))
 
